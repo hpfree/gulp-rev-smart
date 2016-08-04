@@ -1,0 +1,71 @@
+{
+  "name": "gulp-rev-css-url",
+  "version": "0.1.0",
+  "description": "The lightweight plugin to override urls in css files to hashed after gulp-rev",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/galkinrost/gulp-rev-css-url"
+  },
+  "author": {
+    "name": "Galkin Rostislav",
+    "email": "galkinrost@gmail.com",
+    "url": "http://github.com/galkinrost"
+  },
+  "keywords": [
+    "gulpplugin",
+    "rev",
+    "revision",
+    "hash",
+    "optimize",
+    "version",
+    "versioning",
+    "cache",
+    "expire",
+    "static",
+    "asset",
+    "assets",
+    "gulp-rev"
+  ],
+  "devDependencies": {
+    "gulp": "~3.6.2",
+    "gulp-rev": "~5.0.0",
+    "mocha": "~1.20.0",
+    "gulp-jshint": "~1.6.1",
+    "fs-extra": "~0.9.1",
+    "chai": "~1.9.1"
+  },
+  "dependencies": {
+    "crypto": "0.0.3",
+    "gulp-util": "~2.2.14",
+    "through2": "~0.4.2"
+  },
+  "scripts": {
+    "test": "mocha test.js -R list"
+  },
+  "gitHead": "dd245ae41bb516cfac8ce46f7520cabc09adb8c1",
+  "bugs": {
+    "url": "https://github.com/galkinrost/gulp-rev-css-url/issues"
+  },
+  "homepage": "https://github.com/galkinrost/gulp-rev-css-url",
+  "_id": "gulp-rev-css-url@0.1.0",
+  "_shasum": "18c390e007982f642b269d36dea98382f67de5f5",
+  "_from": "gulp-rev-css-url@*",
+  "_npmVersion": "2.1.8",
+  "_nodeVersion": "0.12.4",
+  "_npmUser": {
+    "name": "galkinrost",
+    "email": "galkinrost@gmail.com"
+  },
+  "maintainers": [
+    {
+      "name": "galkinrost",
+      "email": "galkinrost@gmail.com"
+    }
+  ],
+  "dist": {
+    "shasum": "18c390e007982f642b269d36dea98382f67de5f5",
+    "tarball": "https://registry.npmjs.org/gulp-rev-css-url/-/gulp-rev-css-url-0.1.0.tgz"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/gulp-rev-css-url/-/gulp-rev-css-url-0.1.0.tgz"
+}
