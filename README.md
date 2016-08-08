@@ -10,7 +10,7 @@ See <a href="https://github.com/galkinrost/gulp-rev-css-url/tree/master/expected
 Install
 --
 ```sh
-npm install gulp-rev-css-url
+npm install gulp-rev-smart
 ```
 
 Usage

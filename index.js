@@ -4,7 +4,8 @@ var gutil = require('gulp-util');
 var path = require('path');
 
 module.exports = function override() {
-    var allowedPathRegExp = /\.(css|js)$/;
+   // var allowedPathRegExp = /\.(css|js)$/;
+    var allowedPathRegExp = /\.(css|js|html)$/;
 
     function md5(str) {
         return crypto.createHash('md5').update(str, 'utf8').digest('hex');
@@ -44,21 +45,6 @@ module.exports = function override() {
                 return 0;
             });
 
-            console.log("file.path:::"+file.path);
-            console.log("file.revOrigPath:::"+file.revOrigPath);
-            console.log("firstFile.revOrigBase::::"+firstFile.revOrigBase);
-            console.log("firstFile.revOrigPath:::"+firstFile.revOrigPath);
-            console.log("firstFile.base:::"+firstFile.base);
-            // console.log(path.resolve(firstFile.revOrigBase));
-            // console.log(path.resolve(firstFile.base));
-
-            //console.log(f);
-            f.forEach(function(__f){
-                console.log(1);
-                console.log(__f.origPath);
-                console.log(__f.hashedPath);
-            })
-
         }
         cb();
     }, function (cb) {
@@ -69,11 +55,52 @@ module.exports = function override() {
             if ((allowedPathRegExp.test(file.revOrigPath) ) && file.contents) {
                 var contents = file.contents.toString();
                 f.forEach(function (__f) {
+                     var pathsep = path.sep;
+                    var momentHashedPathArr = __f.hashedPath.split(pathsep);
+                    var momentOrigPathArr = __f.origPath.split(pathsep);
+
                     var origPath = __f.origPath.replace(new RegExp('\\' + path.sep, 'g'), '/').replace(/\./g, '\\.');
                     var hashedPath = __f.hashedPath.replace(new RegExp('\\' + path.sep, 'g'), '/');
                     contents = contents.replace(
                         new RegExp(origPath, 'g'),
                         hashedPath);
+
+                    //我是为了相对路径而生的
+
+                    var momentRelHashedPath = relPath(path.resolve(file.base), file.path);
+                    var momentRelOrigPath = relPath(path.resolve(file.revOrigBase), file.revOrigPath);
+
+                    var momentRelHashedPathArr = momentRelHashedPath.split(pathsep);
+                    var momentRelOrigPathArr = momentRelOrigPath.split(pathsep);
+
+                    var copymomentRelHashedPathArr = momentRelHashedPath.split(pathsep);
+                    for(var i=0;i<copymomentRelHashedPathArr.length;i++){
+                        if(copymomentRelHashedPathArr[i]==momentHashedPathArr[0]){
+                            momentRelOrigPathArr.shift()
+                            momentRelHashedPathArr.shift()
+                            momentHashedPathArr.shift()
+                            momentOrigPathArr.shift()
+                        }else{
+                            break;
+                        }
+                    };
+                            
+                    momentRelOrigPath = momentRelOrigPathArr.join(pathsep).indexOf("/")<0?"":momentRelOrigPathArr.join(pathsep);
+                    momentRelHashedPath =  momentRelHashedPathArr.join(pathsep).indexOf("/")<0?"":momentRelHashedPathArr.join(pathsep);
+                    momentHashedPath =  momentHashedPathArr.join(pathsep);
+                    momentOrigPath =  momentOrigPathArr.join(pathsep);
+
+                    var relHashedPath = path.relative(path.basename(momentRelHashedPath),momentHashedPath);
+                    var relOrigPath = path.relative(path.basename(momentRelOrigPath),momentOrigPath);
+
+                    relOrigPath = relOrigPath.replace(new RegExp('\\' + path.sep, 'g'),"/").replace(/\./g,'\\.');
+                    relHashedPath = relHashedPath.replace(new RegExp('\\' + path.sep, 'g'), '/');
+
+                    //替换相对路径名
+                    contents = contents.replace(
+                        new RegExp(relOrigPath,"g"),
+                        relHashedPath);
+
                 });
 
                 file.contents = new Buffer(contents);
@@ -81,11 +108,17 @@ module.exports = function override() {
                 // update file's hash as it does in gulp-rev plugin
                 var hash = file.revHash = md5(contents).slice(0, 10);
                 var ext = path.extname(file.path);
-                var filename = path.basename(file.revOrigPath, ext) + '-' + hash + ext;
+
+                //我是为了处理文件名带" . "而生的;
+                var baseFileName = path.basename(file.revOrigPath, ext)
+                var extIndex = baseFileName.indexOf(".")
+
+                var filename = extIndex === -1?
+                    baseFileName + '-' + hash + ext : 
+                    baseFileName.substr(0,extIndex) + '-' + hash + baseFileName.substr(extIndex) + ext;
                 file.path = path.join(path.dirname(file.path), filename);
 
             }
-
             self.push(file);
         });
         cb();
