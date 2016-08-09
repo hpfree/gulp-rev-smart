@@ -1,10 +1,9 @@
 {
   "name": "gulp-rev-smart",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The lightweight plugin to override urls in css files to hashed after gulp-rev",
   "repository": {
     "type": "git",
-    //"url": "git://github.com/galkinrost/gulp-rev-css-url",
     "url": "git@github.com:hpfree/gulp-rev-smart.git"
   },
   "author": {

@@ -54,6 +54,9 @@ module.exports = function override() {
 
             if ((allowedPathRegExp.test(file.revOrigPath) ) && file.contents) {
                 var contents = file.contents.toString();
+                var addMatchJs = /(\s*\:\s*['|"][\w\-\_\.\/\/]+)(['|"])/g;
+                var delMatchJs = /(\s*\:\s*['|"][\w\-\_\.\/\/]+)\.js(['|"])/g;
+                contents = contents.replace(addMatchJs,'$1.js$2');
                 f.forEach(function (__f) {
                      var pathsep = path.sep;
                     var momentHashedPathArr = __f.hashedPath.split(pathsep);
@@ -102,7 +105,7 @@ module.exports = function override() {
                         relHashedPath);
 
                 });
-
+                contents = contents.replace(delMatchJs,'$1$2');
                 file.contents = new Buffer(contents);
 
                 // update file's hash as it does in gulp-rev plugin
