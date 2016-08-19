@@ -4,13 +4,15 @@ var gutil = require('gulp-util');
 var path = require('path');
 
 module.exports = function override() {
-   // var allowedPathRegExp = /\.(css|js)$/;
     var allowedPathRegExp = /\.(css|js|html)$/;
-
+    var dontGlobal = [ /^\/favicon.ico$/g ];
+    var pathsep = path.sep;
+    var f = [];
+    var addMatchJs = /(\s*\:\s*['|"][\w\-\_\.\/\/]+[^\.js])(['|"])/g;
+    var delMatchJs = /(\s*\:\s*['|"][\w\-\_\.\/\/]+)\.js(['|"])/g;
     function md5(str) {
-        return crypto.createHash('md5').update(str, 'utf8').digest('hex');
+        return crypto.createHash('md5').update(str, 'utf8').digest('hex').slice(0, 10);
     }
-
     function relPath(base, filePath) {
         if (filePath.indexOf(base) !== 0) {
             return filePath;
@@ -22,105 +24,176 @@ module.exports = function override() {
             return newPath;
         }
     }
+    function is_binary_file(file) {
+        var length = (file.contents.length > 50) ? 50 : file.contents.length;
+        for (var i = 0; i < length; i++) {
+            if (file.contents[i] === 0) {
+                return true;
+            }
+        }
+        return false;
 
-    var f = [];
+    };
+    function shouldSearchFile(file){
+        var filename = path.basename(file.revOrigPath);
+        for (var i = dontGlobal.length; i--;) {
+            var regex = (dontGlobal[i] instanceof RegExp) ? dontGlobal[i] : new RegExp(dontGlobal[i] + '$', 'ig');
+            if (filename.match(regex)) {
+                return false;
+            }
+        }
+        return true;
+    };
+    function createRelativePath(){
+        for(var i=0;i<f.length;i++){
+            var currentFile = f[i].file;
+            if (is_binary_file(currentFile) || !shouldSearchFile(currentFile) || !allowedPathRegExp.test(currentFile.revOrigPath) ) {
+                continue;
+            }
+            currentFile.needRepleace = true;
+            currentFile.revOrigBaseRelative = [];
+            currentFile.revOrigBasePosition = [];
+            f.forEach(function(__file){
+                var listsFile = __file.file;
+                isUploadRevHash(currentFile,listsFile,__file.origPath)
+            })
+        }
+    };
 
+    function isUploadRevHash(currentFile, file, checkPath, isrelative){
+        var contents = currentFile.contents.toString() ;
+        if(contents.indexOf(checkPath) > -1){
+            currentFile.isUpdataHash = true;
+            currentFile.revHash += file.revHash;
+            isrelative?
+            currentFile.revOrigBaseRelative.push({"path":checkPath,"file":file}):currentFile.revOrigBasePosition.push({"path":checkPath,"file":file});
+
+        }
+    };
+    function getReference(fileCurrentReference, file) {
+        if (dirname_with_sep(fileCurrentReference.path).indexOf(dirname_with_sep(file.path)) === 0) {
+            var relPath = get_relative_path(path.dirname(file.path), fileCurrentReference.revOrigPath, true);
+            var relPathdosh = '.' + get_relative_path(path.dirname(file.path), fileCurrentReference.revOrigPath, false);
+            isUploadRevHash(file,fileCurrentReference,relPath,true)
+            isUploadRevHash(file,fileCurrentReference,relPathdosh,true)
+        }
+        if (dirname_with_sep(file.path) !== dirname_with_sep(fileCurrentReference.path) &&
+            dirname_with_sep(fileCurrentReference.path).indexOf(dirname_with_sep(file.path)) === -1) {
+            var pathCurrentReference = dirname_with_sep(get_relative_path(fileCurrentReference.revOrigBase, fileCurrentReference.revOrigPath));
+            var pathFile = dirname_with_sep(get_relative_path(file.base, file.revOrigPath));
+
+            var relPath = path.relative(pathFile, pathCurrentReference);
+            relPath = relPath.replace(/\\/g, '/');
+            relPath = relPath + '/' + path.basename(fileCurrentReference.revOrigPath);
+            isUploadRevHash(file,fileCurrentReference,relPath,true);          
+        }
+    };
+    function dirname_with_sep(filepath){
+        return path.dirname(filepath)+"/";
+    }
+    function get_relative_path(base, paths, noStartingSlash) {
+        if (base === paths) {
+            return '';
+        }
+        base = base.replace(/^[a-z]:/i, '').replace(/\\/g, '/').replace(/\/$/g, '') + '/';
+        paths = paths.replace(/^[a-z]:/i, '').replace(/\\/g, '/');
+        if (base === paths.substr(0, base.length)) {
+            paths = '/' + paths.substr(base.length);
+        }
+        var modifyStartingSlash = noStartingSlash !== undefined;
+        if(modifyStartingSlash) {
+            if (paths[0] === '/' && noStartingSlash) {
+                paths = paths.substr(1);
+            } else if (paths[0] !== '/' && !noStartingSlash){
+                paths = '/' + paths;
+            }
+        }
+        return paths;
+    };
+    function createHashName(filepath, revHash, onlyName){
+        if(!filepath) return
+        var ext = path.extname(filepath);
+        var fileDirname = path.dirname(filepath);
+        var fileBasename = path.basename(filepath,ext);
+        var filename;
+        filename = onlyName ? 
+        fileBasename + '-' + revHash + ext  :  fileDirname + "/" + fileBasename + '-' + revHash + ext;
+        return filename;
+    }
+    var sourcemaps = [];
+    var pathMap = {};
     return through.obj(function (file, enc, cb) {
-        var firstFile = null;
+        if (file.isNull()) {
+            cb(null, file);
+            return;
+        }
 
+        if (file.isStream()) {
+            cb(new gutil.PluginError('gulp-rev-smart', 'Streaming not supported'));
+            return;
+        }
+       
+         var firstFile = null;
+        var oldPath = file.path;
+        file.revOrigPath = file.path;
+        file.revOrigBase = file.base;
+        file.revHash = md5(file.contents);
+        if(/\.(js|html)$/.test(file.revOrigPath)){
+            file.contents = new Buffer(file.contents.toString().replace(addMatchJs,'$1.js$2'));
+        };
         if (file.path && file.revOrigPath) {
             firstFile = firstFile || file;
             var _relPath = relPath(path.resolve(firstFile.revOrigBase), file.revOrigPath);
-
             f.push({
-                origPath: _relPath, //tip.css
-                hashedPath: relPath(path.resolve(firstFile.base), file.path), //tip12345.css
-                file: file
+                origPath: _relPath,
+                file: file 
             });
-
-            // sort by filename length to not replace the common part(s) of several filenames
             f.sort(function (a, b) {
                 if(a.origPath.length > b.origPath.length) return -1;
                 if(a.origPath.length < b.origPath.length) return 1;
                 return 0;
             });
-
         }
         cb();
     }, function (cb) {
         var self = this;
+        createRelativePath();
+        var i=0;
+        f.forEach(function(_f){
+            var file = _f.file;
+            if(file.isUpdataHash){
+                file.revHash =  md5(file.revHash.toString());
+            }
+            var filename = createHashName(file.path,file.revHash);
+            file.path = path.join(filename);
+        })
         f.forEach(function (_f) {
             var file = _f.file;
-
-            if ((allowedPathRegExp.test(file.revOrigPath) ) && file.contents) {
+            if(file.needRepleace) {
                 var contents = file.contents.toString();
-                var addMatchJs = /(\s*\:\s*['|"][\w\-\_\.\/\/]+)(['|"])/g;
-                var delMatchJs = /(\s*\:\s*['|"][\w\-\_\.\/\/]+)\.js(['|"])/g;
-                contents = contents.replace(addMatchJs,'$1.js$2');
-                f.forEach(function (__f) {
-                     var pathsep = path.sep;
-                    var momentHashedPathArr = __f.hashedPath.split(pathsep);
-                    var momentOrigPathArr = __f.origPath.split(pathsep);
+                file.revOrigBaseRelative.forEach(function(relativeFile){
+                    var origPath = relativeFile.path;
+                    var hashedPath = createHashName(origPath,relativeFile.file.revHash);
+                    var origPath = origPath.replace(new RegExp('\\' + path.sep, 'g'), '/').replace(/\./g, '\\.');
+                    var hashedPath = hashedPath.replace(new RegExp('\\' + path.sep, 'g'), '/');
 
-                    var origPath = __f.origPath.replace(new RegExp('\\' + path.sep, 'g'), '/').replace(/\./g, '\\.');
-                    var hashedPath = __f.hashedPath.replace(new RegExp('\\' + path.sep, 'g'), '/');
-                    contents = contents.replace(
-                        new RegExp(origPath, 'g'),
-                        hashedPath);
+                    contents=contents.replace(
+                    new RegExp(origPath, 'g'),
+                    hashedPath);
+                });
 
-                    //我是为了相对路径而生的
-
-                    var momentRelHashedPath = relPath(path.resolve(file.base), file.path);
-                    var momentRelOrigPath = relPath(path.resolve(file.revOrigBase), file.revOrigPath);
-
-                    var momentRelHashedPathArr = momentRelHashedPath.split(pathsep);
-                    var momentRelOrigPathArr = momentRelOrigPath.split(pathsep);
-
-                    var copymomentRelHashedPathArr = momentRelHashedPath.split(pathsep);
-                    for(var i=0;i<copymomentRelHashedPathArr.length;i++){
-                        if(copymomentRelHashedPathArr[i]==momentHashedPathArr[0]){
-                            momentRelOrigPathArr.shift()
-                            momentRelHashedPathArr.shift()
-                            momentHashedPathArr.shift()
-                            momentOrigPathArr.shift()
-                        }else{
-                            break;
-                        }
-                    };
-                            
-                    momentRelOrigPath = momentRelOrigPathArr.join(pathsep).indexOf("/")<0?"":momentRelOrigPathArr.join(pathsep);
-                    momentRelHashedPath =  momentRelHashedPathArr.join(pathsep).indexOf("/")<0?"":momentRelHashedPathArr.join(pathsep);
-                    momentHashedPath =  momentHashedPathArr.join(pathsep);
-                    momentOrigPath =  momentOrigPathArr.join(pathsep);
-
-                    var relHashedPath = path.relative(path.basename(momentRelHashedPath),momentHashedPath);
-                    var relOrigPath = path.relative(path.basename(momentRelOrigPath),momentOrigPath);
-
-                    relOrigPath = relOrigPath.replace(new RegExp('\\' + path.sep, 'g'),"/").replace(/\./g,'\\.');
-                    relHashedPath = relHashedPath.replace(new RegExp('\\' + path.sep, 'g'), '/');
-
-                    //替换相对路径名
-                    contents = contents.replace(
-                        new RegExp(relOrigPath,"g"),
-                        relHashedPath);
-
+                file.revOrigBasePosition.forEach(function(relativeFile){
+                    var origPath = relativeFile.path;
+                    var hashedPath = createHashName(origPath,relativeFile.file.revHash);
+                    var origPath = origPath.replace(new RegExp('\\' + path.sep, 'g'), '/').replace(/\./g, '\\.');
+                    var hashedPath = hashedPath.replace(new RegExp('\\' + path.sep, 'g'), '/');
+                    contents=contents.replace(
+                    new RegExp(origPath, 'g'),
+                    hashedPath);
                 });
                 contents = contents.replace(delMatchJs,'$1$2');
                 file.contents = new Buffer(contents);
-
-                // update file's hash as it does in gulp-rev plugin
-                var hash = file.revHash = md5(contents).slice(0, 10);
-                var ext = path.extname(file.path);
-
-                //我是为了处理文件名带" . "而生的;
-                var baseFileName = path.basename(file.revOrigPath, ext)
-                var extIndex = baseFileName.indexOf(".")
-
-                var filename = extIndex === -1?
-                    baseFileName + '-' + hash + ext : 
-                    baseFileName.substr(0,extIndex) + '-' + hash + baseFileName.substr(extIndex) + ext;
-                file.path = path.join(path.dirname(file.path), filename);
-
+                file.needRepleace = false;
             }
             self.push(file);
         });
