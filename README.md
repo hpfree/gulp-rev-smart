@@ -18,12 +18,10 @@ Usage
 
 ```javascript
 var gulp=require('gulp');
-var rev=require('gulp-rev');
 var override=require('gulp-rev-smart');
 
 gulp.task('rev',function(){
     return gulp.src('./activity/**/*')
-                .pipe(rev())
                 .pipe(override())
                 .pipe(gulp.dest('./build/'))
                 .pipe(rev.manifest())
