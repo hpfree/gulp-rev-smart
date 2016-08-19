@@ -164,8 +164,12 @@ module.exports = function override() {
             if(file.isUpdataHash){
                 file.revHash =  md5(file.revHash.toString());
             }
-            var filename = createHashName(file.path,file.revHash);
-            file.path = path.join(filename);
+            if(!/\.html$/.test(file.revOrigPath)){
+              var filename = createHashName(file.path,file.revHash);
+              file.path = path.join(filename);  
+            }else{
+                file.revHash = "";
+            }
         })
         f.forEach(function (_f) {
             var file = _f.file;
