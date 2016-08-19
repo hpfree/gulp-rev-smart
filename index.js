@@ -55,7 +55,8 @@ module.exports = function override() {
             currentFile.revOrigBasePosition = [];
             f.forEach(function(__file){
                 var listsFile = __file.file;
-                isUploadRevHash(currentFile,listsFile,__file.origPath)
+                isUploadRevHash(currentFile,listsFile,__file.origPath);
+                getReference(listsFile, currentFile)
             })
         }
     };
