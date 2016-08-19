@@ -1,7 +1,7 @@
 CSS-URL [![Build Status](https://travis-ci.org/galkinrost/gulp-rev-css-url.svg?branch=master)](https://travis-ci.org/galkinrost/gulp-rev-css-url)
 =========
 
-The lightweight plugin to override urls in css files to hashed after <a href="https://www.npmjs.org/package/gulp-rev">gulp-rev</a>
+The lightweight plugin to override urls in files to hashed after <a href="https://www.npmjs.org/package/gulp-rev">gulp-rev</a>
 
 What is the result?
 --
