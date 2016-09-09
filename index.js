@@ -13,7 +13,7 @@ module.exports = function override(opts) {
     var dontGlobal = [ /^\/favicon.ico$/g ];
     var pathsep = path.sep;
     var f = [];
-    var addMatchJs = /(\s*\:\s*['|"][\w\-\_\.\/\/]+[^\.js])(['|"])/g;
+    var addMatchJs = /(\s*\:\s*['|"][\w\-\_\.\/\/]+(?!\.js))(['|"])/g
     var delMatchJs = /(\s*\:\s*['|"][\w\-\_\.\/\/]+)\.js(['|"])/g;
     function md5(str) {
         return crypto.createHash('md5').update(str, 'utf8').digest('hex').slice(0, 10);
