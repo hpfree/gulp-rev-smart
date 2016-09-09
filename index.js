@@ -6,7 +6,8 @@ var path = require('path');
 
 module.exports = function override(opts) {
     var defaults = {
-        "dontRenameFile" : []
+        "dontRenameFile" : [],
+        "addjspostfix" : []
     }
     this.options = Merge(defaults, opts);
     var allowedPathRegExp = /\.(css|js|html)$/;
@@ -145,6 +146,16 @@ module.exports = function override(opts) {
         }
         return true;
     };
+    function shouldaddjspostfix(file){
+        var filename = path.basename(file.revOrigPath);
+        for (var i = this.options.addjspostfix.length; i--;) {
+            var regex = (this.options.addjspostfix[i] instanceof RegExp) ? this.options.addjspostfix[i] : new RegExp(this.options.addjspostfix[i] + '$', 'ig');
+            if (filename.match(regex)) {
+                return true;
+            }
+        }
+        return false;
+    };
     var sourcemaps = [];
     var pathMap = {};
     return through.obj(function (file, enc, cb) {
@@ -164,8 +175,9 @@ module.exports = function override(opts) {
         file.revOrigPath = file.path;
         file.revOrigBase = file.base;
         file.revHash = md5(file.contents);
-        if(/\.(js|html)$/.test(file.revOrigPath)){
+        if(/\.(js|html)$/.test(file.revOrigPath)&&shouldaddjspostfix(file)){
             file.contents = new Buffer(file.contents.toString().replace(addMatchJs,'$1.js$2'));
+            file.jspostfix = true;
         };
         if (file.path && file.revOrigPath) {
             firstFile = firstFile || file;
@@ -221,7 +233,9 @@ module.exports = function override(opts) {
                     new RegExp(origPath, 'g'),
                     hashedPath);
                 });
-                contents = contents.replace(delMatchJs,'$1$2');
+                if(file.jspostfix){
+                    contents = contents.replace(delMatchJs,'$1$2');
+                }
                 file.contents = new Buffer(contents);
                 file.needRepleace = false;
             }
