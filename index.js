@@ -1,9 +1,14 @@
 var through = require('through2');
 var crypto = require('crypto');
+var Merge = require('merge');
 var gutil = require('gulp-util');
 var path = require('path');
 
-module.exports = function override() {
+module.exports = function override(opts) {
+    var defaults = {
+        "dontRenameFile" : []
+    }
+    this.options = Merge(defaults, opts);
     var allowedPathRegExp = /\.(css|js|html)$/;
     var dontGlobal = [ /^\/favicon.ico$/g ];
     var pathsep = path.sep;
@@ -91,7 +96,7 @@ module.exports = function override() {
     };
     function dirname_with_sep(filepath){
         return path.dirname(filepath)+"/";
-    }
+    };
     function get_relative_path(base, paths, noStartingSlash) {
         if (base === paths) {
             return '';
@@ -117,10 +122,29 @@ module.exports = function override() {
         var fileDirname = path.dirname(filepath);
         var fileBasename = path.basename(filepath,ext);
         var filename;
-        filename = onlyName ? 
+        filename = onlyName ?
         fileBasename + '-' + revHash + ext  :  fileDirname + "/" + fileBasename + '-' + revHash + ext;
         return filename;
-    }
+    };
+    function manifestFile() {
+        return new Gutil.File({
+            cwd: this.pathCwd,
+            base: this.pathBase,
+            path: Path.join(this.pathBase, this.options.fileNameManifest),
+            contents: new Buffer(JSON.stringify(this.manifest, null, 2))
+        });
+
+    };
+    function shouldRemaneFile(file){
+        var filename = get_relative_path(file.revOrigBase,file.revOrigPath);
+        for (var i = this.options.dontRenameFile.length; i--;) {
+            var regex = (this.options.dontRenameFile[i] instanceof RegExp) ? this.options.dontRenameFile[i] : new RegExp(this.options.dontRenameFile[i] + '$', 'ig');
+            if (filename.match(regex)) {
+                return false;
+            }
+        }
+        return true;
+    };
     var sourcemaps = [];
     var pathMap = {};
     return through.obj(function (file, enc, cb) {
@@ -128,13 +152,14 @@ module.exports = function override() {
             cb(null, file);
             return;
         }
-
         if (file.isStream()) {
             cb(new gutil.PluginError('gulp-rev-smart', 'Streaming not supported'));
             return;
         }
-       
-         var firstFile = null;
+       if (!this.pathCwd) {
+           this.pathCwd = file.cwd;
+       }
+        var firstFile = null;
         var oldPath = file.path;
         file.revOrigPath = file.path;
         file.revOrigBase = file.base;
@@ -164,13 +189,13 @@ module.exports = function override() {
             var file = _f.file;
             if(file.isUpdataHash){
                 file.revHash =  md5(file.revHash.toString());
-            }
-            if(!/\.html$/.test(file.revOrigPath)){
-              var filename = createHashName(file.path,file.revHash);
-              file.path = path.join(filename);  
+            };
+            if(!/\.html$/.test(file.revOrigPath)&&shouldRemaneFile(file)){
+                var filename = createHashName(file.path,file.revHash);
+                file.path = path.join(filename);
             }else{
                 file.revHash = "";
-            }
+            };
         })
         f.forEach(function (_f) {
             var file = _f.file;
