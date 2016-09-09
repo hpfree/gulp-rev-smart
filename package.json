@@ -1,6 +1,6 @@
 {
   "name": "gulp-rev-smart",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "The lightweight plugin to override urls in css files to hashed after gulp-rev",
   "repository": {
     "type": "git",
@@ -32,7 +32,8 @@
     "mocha": "~1.20.0",
     "gulp-jshint": "~1.6.1",
     "fs-extra": "~0.9.1",
-    "chai": "~1.9.1"
+    "chai": "~1.9.1",
+    "merge": "^1.2.0"
   },
   "dependencies": {
     "crypto": "0.0.3",
