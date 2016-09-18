@@ -69,6 +69,7 @@ module.exports = function override(opts) {
 
     function isUploadRevHash(currentFile, file, checkPath, isrelative){
         var contents = currentFile.contents.toString() ;
+        checkPath = checkPath.replace(new RegExp('\\' + path.sep, 'g'), '/');
         if(contents.indexOf(checkPath) > -1){
             currentFile.isUpdataHash = true;
             currentFile.revHash += file.revHash;
