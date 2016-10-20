@@ -1,11 +1,6 @@
 CSS-URL [![Build Status](https://travis-ci.org/galkinrost/gulp-rev-css-url.svg?branch=master)](https://travis-ci.org/galkinrost/gulp-rev-css-url)
 =========
-
-The lightweight plugin to override urls in files to hashed after <a href="https://www.npmjs.org/package/gulp-rev">gulp-rev</a>
-
-What is the result?
---
-See <a href="https://github.com/galkinrost/gulp-rev-css-url/tree/master/expected">here</a>
+Static asset revisioning by appending content hash to filenames: unicorn.css => unicorn.098f6bcd.css, also re-writes references in each file to new reved name.
 
 Install
 --
@@ -29,11 +24,6 @@ gulp.task('rev',function(){
 });
 
 ```
-AND
-```sh
-gulp rev
-```
-
 Tests
 --
 ```sh
